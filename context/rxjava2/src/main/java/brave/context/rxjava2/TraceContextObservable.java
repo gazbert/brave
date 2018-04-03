@@ -28,7 +28,7 @@ final class TraceContextObservable<T> extends Observable<T> implements TraceCont
   }
 
   @Override protected void subscribeActual(io.reactivex.Observer<? super T> s) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       source.subscribe(new Observer<>(s, currentTraceContext, assemblyContext));
     }
   }
@@ -48,19 +48,19 @@ final class TraceContextObservable<T> extends Observable<T> implements TraceCont
     }
 
     @Override public void onNext(T t) {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onNext(t);
       }
     }
 
     @Override public void onError(Throwable t) {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onError(t);
       }
     }
 
     @Override public void onComplete() {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onComplete();
       }
     }

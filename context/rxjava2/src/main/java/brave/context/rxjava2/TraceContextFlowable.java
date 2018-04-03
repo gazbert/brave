@@ -28,7 +28,7 @@ final class TraceContextFlowable<T> extends Flowable<T> implements TraceContextG
   }
 
   @Override protected void subscribeActual(Subscriber s) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       if (s instanceof ConditionalSubscriber) {
         source.subscribe(new TraceContextConditionalSubscriber<>(
             (ConditionalSubscriber) s, currentTraceContext, assemblyContext

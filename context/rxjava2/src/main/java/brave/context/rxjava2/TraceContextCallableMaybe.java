@@ -30,13 +30,13 @@ final class TraceContextCallableMaybe<T> extends Maybe<T>
   }
 
   @Override protected void subscribeActual(MaybeObserver<? super T> s) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       source.subscribe(new Observer<>(s, currentTraceContext, assemblyContext));
     }
   }
 
   @SuppressWarnings("unchecked") @Override public T call() throws Exception {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       return ((Callable<T>) source).call();
     }
   }

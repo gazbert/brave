@@ -29,7 +29,7 @@ final class TraceContextSingle<T> extends Single<T> implements TraceContextGette
   }
 
   @Override protected void subscribeActual(SingleObserver<? super T> s) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       source.subscribe(new Observer<>(s, currentTraceContext, assemblyContext));
     }
   }
@@ -53,19 +53,19 @@ final class TraceContextSingle<T> extends Single<T> implements TraceContextGette
     @Override public void onSubscribe(Disposable d) {
       if (!DisposableHelper.validate(this.d, d)) return;
       this.d = d;
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onSubscribe(this);
       }
     }
 
     @Override public void onError(Throwable t) {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onError(t);
       }
     }
 
     @Override public void onSuccess(T value) {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onSuccess(value);
       }
     }

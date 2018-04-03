@@ -28,7 +28,7 @@ final class TraceContextCallableFlowable<T> extends Flowable<T>
   }
 
   @Override protected void subscribeActual(org.reactivestreams.Subscriber<? super T> s) {
-    try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (CurrentTraceContext.Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       if (s instanceof ConditionalSubscriber) {
         source.subscribe(new TraceContextConditionalSubscriber<>(
             (ConditionalSubscriber) s, currentTraceContext, assemblyContext
@@ -40,7 +40,7 @@ final class TraceContextCallableFlowable<T> extends Flowable<T>
   }
 
   @SuppressWarnings("unchecked") @Override public T call() throws Exception {
-    try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (CurrentTraceContext.Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       return ((Callable<T>) source).call();
     }
   }

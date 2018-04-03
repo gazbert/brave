@@ -29,13 +29,13 @@ final class TraceContextScalarCallableObservable<T> extends Observable<T>
   }
 
   @Override protected void subscribeActual(io.reactivex.Observer<? super T> s) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       source.subscribe(new Observer<>(s, currentTraceContext, assemblyContext));
     }
   }
 
   @SuppressWarnings("unchecked") @Override public T call() {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       return ((ScalarCallable<T>) source).call();
     }
   }

@@ -29,7 +29,7 @@ final class TraceContextMaybe<T> extends Maybe<T> implements TraceContextGetter 
   }
 
   @Override protected void subscribeActual(MaybeObserver<? super T> s) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       source.subscribe(new Observer<>(s, currentTraceContext, assemblyContext));
     }
   }
@@ -53,25 +53,25 @@ final class TraceContextMaybe<T> extends Maybe<T> implements TraceContextGetter 
     @Override public void onSubscribe(Disposable d) {
       if (!DisposableHelper.validate(this.d, d)) return;
       this.d = d;
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onSubscribe(this);
       }
     }
 
     @Override public void onError(Throwable t) {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onError(t);
       }
     }
 
     @Override public void onSuccess(T value) {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onSuccess(value);
       }
     }
 
     @Override public void onComplete() {
-      try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+      try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
         actual.onComplete();
       }
     }

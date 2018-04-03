@@ -22,25 +22,25 @@ final class TraceContextConditionalSubscriber<T> extends BasicFuseableConditiona
   }
 
   @Override public boolean tryOnNext(T t) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       return actual.tryOnNext(t);
     }
   }
 
   @Override public void onNext(T t) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       actual.onNext(t);
     }
   }
 
   @Override public void onError(Throwable t) {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       actual.onError(t);
     }
   }
 
   @Override public void onComplete() {
-    try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
+    try (Scope scope = currentTraceContext.maybeScope(assemblyContext)) {
       actual.onComplete();
     }
   }
