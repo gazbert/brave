@@ -73,7 +73,7 @@
     <finagle.version>18.1.0</finagle.version>
     <log4j.version>2.10.0</log4j.version>
     <okhttp.version>3.9.1</okhttp.version>
-    <grpc.version>1.8.0</grpc.version>
+    <grpc.version>1.11.0</grpc.version>
     <netty.version>4.1.19.Final</netty.version>
     <sparkjava.version>2.7.1</sparkjava.version>
     <junit.version>4.12</junit.version>

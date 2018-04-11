@@ -3,11 +3,12 @@ package brave.grpc;
 import brave.Span;
 import brave.Tracer;
 import brave.propagation.Propagation;
-import brave.propagation.TraceContext;
+import brave.propagation.TraceContext.Extractor;
 import brave.propagation.TraceContextOrSamplingFlags;
 import io.grpc.ForwardingServerCall.SimpleForwardingServerCall;
 import io.grpc.ForwardingServerCallListener.SimpleForwardingServerCallListener;
 import io.grpc.Metadata;
+import io.grpc.Metadata.Key;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
@@ -15,19 +16,25 @@ import io.grpc.Status;
 
 // not exposed directly as implementation notably changes between versions 1.2 and 1.3
 final class TracingServerInterceptor implements ServerInterceptor {
+  static final Propagation.Getter<Metadata, Key<String>> GETTER =
+      new Propagation.Getter<Metadata, Key<String>>() { // retrolambda no like
+        @Override public String get(Metadata metadata, Key<String> key) {
+          return metadata.get(key);
+        }
+
+        @Override public String toString() {
+          return "Metadata::get";
+        }
+      };
+
   final Tracer tracer;
-  final TraceContext.Extractor<Metadata> extractor;
+  final Extractor<Metadata> extractor;
   final GrpcServerParser parser;
 
   TracingServerInterceptor(GrpcTracing grpcTracing) {
-    tracer = grpcTracing.tracing().tracer();
-    extractor = grpcTracing.tracing().propagationFactory().create(AsciiMetadataKeyFactory.INSTANCE)
-        .extractor(new Propagation.Getter<Metadata, Metadata.Key<String>>() { // retrolambda no like
-          @Override public String get(Metadata metadata, Metadata.Key<String> key) {
-            return metadata.get(key);
-          }
-        });
-    parser = grpcTracing.serverParser();
+    tracer = grpcTracing.tracing.tracer();
+    extractor = grpcTracing.propagation.extractor(GETTER);
+    parser = grpcTracing.serverParser;
   }
 
   @Override

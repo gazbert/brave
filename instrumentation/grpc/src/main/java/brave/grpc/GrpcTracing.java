@@ -2,39 +2,92 @@ package brave.grpc;
 
 import brave.ErrorParser;
 import brave.Tracing;
-import com.google.auto.value.AutoValue;
+import brave.propagation.Propagation;
 import io.grpc.ClientInterceptor;
+import io.grpc.Metadata;
 import io.grpc.ServerInterceptor;
 
-@AutoValue
-public abstract class GrpcTracing {
+public final class GrpcTracing {
   public static GrpcTracing create(Tracing tracing) {
-    return newBuilder(tracing).build();
+    if (tracing == null) throw new NullPointerException("tracing == null");
+    return new Builder(tracing).build();
   }
 
   public static Builder newBuilder(Tracing tracing) {
-    ErrorParser errorParser = tracing.errorParser();
-    return new AutoValue_GrpcTracing.Builder().tracing(tracing)
-        // override to re-use any custom error parser from the tracing component
-        .clientParser(new GrpcClientParser() {
-          @Override protected ErrorParser errorParser() {
-            return errorParser;
-          }
-        })
-        .serverParser(new GrpcServerParser() {
-          @Override protected ErrorParser errorParser() {
-            return errorParser;
-          }
-        });
+    return new Builder(tracing);
   }
 
-  abstract Tracing tracing();
+  public static final class Builder {
+    final Tracing tracing;
+    GrpcClientParser clientParser;
+    GrpcServerParser serverParser;
+    boolean censusPropagationEnabled = false;
 
-  abstract GrpcClientParser clientParser();
+    Builder(Tracing tracing) {
+      this.tracing = tracing;
+      // override to re-use any custom error parser from the tracing component
+      ErrorParser errorParser = tracing.errorParser();
+      clientParser = new GrpcClientParser() {
+        @Override protected ErrorParser errorParser() {
+          return errorParser;
+        }
+      };
+      serverParser = new GrpcServerParser() {
+        @Override protected ErrorParser errorParser() {
+          return errorParser;
+        }
+      };
+    }
 
-  abstract GrpcServerParser serverParser();
+    public Builder clientParser(GrpcClientParser clientParser) {
+      if (clientParser == null) throw new NullPointerException("clientParser == null");
+      this.clientParser = clientParser;
+      return this;
+    }
 
-  public abstract Builder toBuilder();
+    public Builder serverParser(GrpcServerParser serverParser) {
+      if (serverParser == null) throw new NullPointerException("serverParser == null");
+      this.serverParser = serverParser;
+      return this;
+    }
+
+    /**
+     * Use this to interop with processes that use <a href="https://github.com/census-instrumentation/opencensus-specs/blob/master/encodings/BinaryEncoding.md">
+     * Census Binary Encoded Span Contexts</a>. Default (false) ignores this data.
+     *
+     * <p>When true, the "grpc-trace-bin" metadata key is parsed on server calls. When missing, {@link Tracing#propagation() normal propagation}
+     * is used. During client calls, "grpc-trace-bin" is speculatively written.
+     */
+    public Builder censusPropagationEnabled(boolean censusPropagationEnabled) {
+      this.censusPropagationEnabled = censusPropagationEnabled;
+      return this;
+    }
+
+    public GrpcTracing build() {
+      return new GrpcTracing(this);
+    }
+  }
+
+  final Tracing tracing;
+  final Propagation<Metadata.Key<String>> propagation;
+  final GrpcClientParser clientParser;
+  final GrpcServerParser serverParser;
+
+  GrpcTracing(Builder builder) { // intentionally hidden constructor
+    this.tracing = builder.tracing;
+    this.propagation = builder.censusPropagationEnabled
+        ? CensusGrpcPropagation.create(tracing.propagationFactory())
+        : tracing.propagationFactory().create(AsciiMetadataKeyFactory.INSTANCE);
+    this.clientParser = builder.clientParser;
+    this.serverParser = builder.serverParser;
+  }
+
+  public Builder toBuilder() {
+    return new Builder(tracing)
+        .censusPropagationEnabled(propagation instanceof CensusGrpcPropagation)
+        .clientParser(clientParser)
+        .serverParser(serverParser);
+  }
 
   /** This interceptor traces outbound calls */
   public final ClientInterceptor newClientInterceptor() {
@@ -44,21 +97,5 @@ public abstract class GrpcTracing {
   /** This interceptor traces inbound calls */
   public ServerInterceptor newServerInterceptor() {
     return new TracingServerInterceptor(this);
-  }
-
-  @AutoValue.Builder public static abstract class Builder {
-    abstract Builder tracing(Tracing tracing);
-
-    public abstract Builder clientParser(GrpcClientParser clientParser);
-
-    public abstract Builder serverParser(GrpcServerParser serverParser);
-
-    public abstract GrpcTracing build();
-
-    Builder() {
-    }
-  }
-
-  GrpcTracing() { // intentionally hidden constructor
   }
 }
